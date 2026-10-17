@@ -23,20 +23,22 @@ SEPARATORS = {
 
 
 def final_variant(sep: str) -> str:
-    """Folder name of the finished MIDI: separated -> dereverbed -> guitars split by note."""
-    return f"{sep}_dry_noteassign"
+    """Folder name of the finished MIDI: separated -> dereverbed -> notes refined -> guitars split by the model."""
+    return f"{sep}_dry_refined_modelassign"
 
 
 def stages(src: Path, work: Path, sep: str) -> list[tuple[str, str, str, list[str], str]]:
     """(stage, venv, script, args, output that marks it done) for one separator variant."""
     venv, script, extra = SEPARATORS[sep]
-    w, dry = str(work), f"{sep}_dry"
+    w, dry, refined = str(work), f"{sep}_dry", f"{sep}_dry_refined"
     return [
         ("prep", "beat_this", "prep.py", [str(src), w], "00_prep/analysis.json"),
         ("separate", venv, script, [w, *extra], f"01_stems/{sep}/stems.json"),
         ("dereverb", "separator", "dereverb.py", [w, sep], f"01_stems/{dry}/stems.json"),
+        ("split_guitars", "separator", "split_guitars_model.py", [w, dry], f"01_stems/{dry}_gmodel/guitar_2.wav"),
         ("transcribe", "muscriptor", "transcribe.py", [w, dry], f"02_midi/{dry}.done.json"),
-        ("assign_guitars", "tools", "assign_guitars.py", [w, dry], f"02_midi/{final_variant(sep)}/guitar_1.json"),
+        ("refine", "tools", "refine_notes.py", [w, dry], f"02_midi/{refined}/guitar.json"),
+        ("assign_guitars", "tools", "assign_guitars.py", [w, dry, refined, "model"], f"02_midi/{final_variant(sep)}/guitar_1.json"),
         ("merge", "tools", "merge.py", [w, final_variant(sep)], f"02_midi/{final_variant(sep)}/song.mid"),
     ]
 

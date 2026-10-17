@@ -1,9 +1,12 @@
-"""Stage 3.5: split guitar MIDI into guitar_1 / guitar_2 by each note's stereo position.
+"""Stage 3.5: split guitar MIDI into guitar_1 / guitar_2 by comparing each note's energy in two signals.
 
-Runs in envs/tools.  Usage: assign_guitars.py <work_dir> <stem_variant> [threshold]
-Reads 01_stems/<v>/guitar.wav + 02_midi/<v>/guitar.json, writes a new midi variant
-02_midi/<v>_noteassign/ with guitar_1.json (left), guitar_2.json (right); other stems hard-linked.
-A note whose L/R balance is within +-threshold goes to both tracks (both guitars playing it).
+Runs in envs/tools.  Usage: assign_guitars.py <work_dir> <stem_variant> <midi_variant> [pan|model] [threshold]
+- pan:   left vs right channel of 01_stems/<stem_variant>/guitar.wav -> 02_midi/<midi_variant>_noteassign/
+- model: the trained splitter's 01_stems/<stem_variant>_gmodel/guitar_{1,2}.wav (higher / lower part)
+         -> 02_midi/<midi_variant>_modelassign/  (Slakh balanced_acc 0.76 vs 0.50 for pan)
+The full guitar is transcribed once (02_midi/<midi_variant>/guitar.json); only the assignment uses the two
+signals, so bleed between them cannot add notes. A note whose balance is within +-threshold goes to both
+tracks; other stems are hard-linked.
 """
 import json
 import os
@@ -21,12 +24,24 @@ ATTACK_S = 0.3  # only look at the start of each note; long sustains collect ble
 DEFAULT_THRESHOLD = 0.2
 
 
+OUT_SUFFIX = {"pan": "noteassign", "model": "modelassign"}
+
+
+def power(x: np.ndarray, sr: int) -> np.ndarray:
+    """Power spectrogram of a mono signal."""
+    return np.abs(stft(x, sr, nperseg=NFFT, noverlap=NFFT - HOP)[2]) ** 2
+
+
 def stereo_power(wav: Path) -> tuple[np.ndarray, np.ndarray, int]:
     """Power spectrograms of left and right channel, plus sample rate."""
     audio, sr = sf.read(wav, dtype="float32")
-    _, _, sl = stft(audio[:, 0], sr, nperseg=NFFT, noverlap=NFFT - HOP)
-    _, _, sr_ = stft(audio[:, 1], sr, nperseg=NFFT, noverlap=NFFT - HOP)
-    return np.abs(sl) ** 2, np.abs(sr_) ** 2, sr
+    return power(audio[:, 0], sr), power(audio[:, 1], sr), sr
+
+
+def model_power(stems: Path) -> tuple[np.ndarray, np.ndarray, int]:
+    """Power spectrograms of the model's guitar_1 / guitar_2 (channels averaged), plus sample rate."""
+    (a, sr), (b, _) = (sf.read(stems / f"guitar_{k}.wav", dtype="float32") for k in (1, 2))
+    return power(a.mean(1), sr), power(b.mean(1), sr), sr
 
 
 def harmonic_bins(pitch: int, sr: int, n_bins: int) -> np.ndarray:
@@ -61,17 +76,18 @@ def link_other_stems(src: Path, dst: Path) -> None:
             os.link(f, dst / f.name)
 
 
-def main(work: Path, variant: str, threshold: float) -> None:
+def main(work: Path, variant: str, midi_variant: str, mode: str, threshold: float) -> None:
     """Assign each guitar note to guitar_1 / guitar_2 and write the new midi variant."""
-    src = work / "02_midi" / variant
-    dst = work / "02_midi" / f"{variant}_noteassign"
+    src = work / "02_midi" / midi_variant
+    dst = work / "02_midi" / f"{midi_variant}_{OUT_SUFFIX[mode]}"
     link_other_stems(src, dst)
     data = json.loads((src / "guitar.json").read_text())
-    pl, pr, sr = stereo_power(work / "01_stems" / variant / "guitar.wav")
+    pl, pr, sr = (stereo_power(work / "01_stems" / variant / "guitar.wav") if mode == "pan"
+                  else model_power(work / "01_stems" / f"{variant}_gmodel"))
     pans = [note_pan(n, pl, pr, sr) for n in data["notes"]]
     g1, g2 = assign(data["notes"], pans, threshold)
     for name, notes in (("guitar_1", g1), ("guitar_2", g2)):
-        (dst / f"{name}.json").write_text(json.dumps({**data, "notes": notes, "split": "noteassign",
+        (dst / f"{name}.json").write_text(json.dumps({**data, "notes": notes, "split": mode,
                                                       "threshold": threshold}))
     hist = np.histogram(pans, bins=10, range=(-1, 1))[0]
     both = sum(abs(p) < threshold for p in pans)
@@ -80,4 +96,5 @@ def main(work: Path, variant: str, threshold: float) -> None:
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]), sys.argv[2], float(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_THRESHOLD)
+    main(Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else "pan",
+         float(sys.argv[5]) if len(sys.argv) > 5 else DEFAULT_THRESHOLD)

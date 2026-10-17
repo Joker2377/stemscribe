@@ -16,10 +16,14 @@ from muscriptor.transcription_model import TranscriptionModel
 # Hard instrument constraint per stem; None = let the model decide.
 STEM_INSTRUMENTS = {
     "vocals": ["voice"],
+    "lead_vocals": ["voice"],
+    "backing_vocals": ["voice"],
     "drums": ["drums"],
     "bass": ["electric_bass"],
     "piano": ["acoustic_piano", "electric_piano"],
     "guitar": ["acoustic_guitar", "clean_electric_guitar", "distorted_electric_guitar"],
+    "guitar_1": ["acoustic_guitar", "clean_electric_guitar", "distorted_electric_guitar"],
+    "guitar_2": ["acoustic_guitar", "clean_electric_guitar", "distorted_electric_guitar"],
     "other": None,
 }
 SILENCE_DBFS = -50.0
