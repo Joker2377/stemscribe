@@ -1,8 +1,7 @@
 """Pick a guitar-split checkpoint by the real task: split separated Slakh validation stems, assign notes, score.
 
 Usage (any Python): python score_checkpoints.py [checkpoint_dir=envs/models/guitar_split] [tracks=slakh_val_tracks.txt] [csv]
-tracks: Slakh validation track names, or MoisesDB song dirs (work/exp/moises_val.txt).
-Needs each track already run through run.py (Slakh) or prep_moises_val.py (MoisesDB).
+tracks: Slakh validation track names. Needs each track already run through run.py.
 Per checkpoint (step_*.pt, then best.pt): split_guitars_model -> assign_guitars model -> eval_guitar_split.
 Writes work/eval/checkpoints.csv (one row per checkpoint and track) and prints the mean balanced_acc per checkpoint.
 """
@@ -19,8 +18,8 @@ OUT_CSV = WORK / "eval" / "checkpoints.csv"
 
 
 def work_dir(track: Path) -> Path:
-    """Pipeline work dir of a Slakh track (run.py, keyed by the mix hash) or a MoisesDB song (prep_moises_val.py)."""
-    return WORK / "moises" / track.name if (track / "data.json").exists() else WORK / song_id(track / "mix.flac")
+    """Pipeline work dir of a Slakh track (run.py, keyed by the mix hash)."""
+    return WORK / song_id(track / "mix.flac")
 
 
 def score_track(ckpt: Path, track: Path, out_csv: Path) -> None:

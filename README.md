@@ -13,7 +13,7 @@ Personal, non-commercial use (MuScriptor and BS-Roformer-SW weights are CC BY-NC
 | transcribe | `transcribe.py` (MuScriptor medium) | muscriptor | `02_midi/<sep>_dry/<stem>.json` |
 | split_guitars | `split_guitars_model.py` (trained high / low splitter, see below; outputs sum to the input) | separator | `01_stems/<sep>_dry_gmodel/guitar_{1,2}.wav` |
 | refine | `refine_notes.py` (onset lag, note-tail trim, drop < 40 ms blips) | tools | `02_midi/<sep>_dry_refined/<stem>.json` |
-| assign_guitars | `assign_guitars.py` (per-note energy in the model's two guitars) | tools | `02_midi/<sep>_dry_refined_modelassign/guitar_{1,2}.json` |
+| assign_guitars | `assign_guitars.py` (per-note energy in the model's two guitars; `smooth` mode also averages neighbours, fewer track hops) | tools | `02_midi/<sep>_dry_refined_modelassign/guitar_{1,2}.json` |
 | merge | `merge.py` | tools | `02_midi/<sep>_dry_refined_modelassign/song.mid` |
 
 Each stage runs in its own venv as a subprocess and is skipped when its output exists (`--force stage,...` to redo).
@@ -42,6 +42,7 @@ python eval_batch.py                                              # -> work/eval
 python eval_batch.py dataset/slakh_flac/validation slakh_val_tracks.txt    # 12 validation tracks (full Slakh, below)
 envs/tools/Scripts/python.exe oracle_stems.py <slakh_track>        # transcribe the true stems (no separation)
 envs/tools/Scripts/python.exe error_breakdown.py <variant> <slakh_track>...   # what kind of errors
+envs/tools/Scripts/python.exe note_continuity.py <variant> <slakh_track>...   # fragmented / glued notes, guitar track hopping
 ```
 
 `eval_midi.py` scores note F1 with mir_eval (onset, onset+offset; drums onset only), aligning Slakh's
@@ -71,5 +72,6 @@ python score_checkpoints.py envs/models/guitar_split               # pick a chec
 The pipeline uses run 5 (`envs/models/guitar_split_run5_gap/best.pt`, set in `split_guitars_model.py`).
 The current training script adds input augmentation (tone, bleed, limiting); that run (6) did not beat run 5.
 
-Shelved: training on MoisesDB real multitracks (`prep_moisesdb.py`, `prep_moises_guitar.py`,
-`transcribe_moises.py`, `prep_moises_val.py`, `train_guitar_split_moises.py`).
+Shelved code lives in `archive/` (git-ignored): MoisesDB real-multitrack training (`archive/moisesdb/`) and
+fine-tuning MuScriptor to output the two guitars directly (`archive/plan_c_tx/`; did not beat the current flow,
+see notes/roadmap.md).

@@ -1,7 +1,6 @@
-"""Score a two-guitar split (guitar_1 / guitar_2 note lists) against a Slakh track's per-guitar MIDI,
-or a MoisesDB song's per-track transcriptions (transcribe_moises.py; MoisesDB has no MIDI).
+"""Score a two-guitar split (guitar_1 / guitar_2 note lists) against a Slakh track's per-guitar MIDI.
 
-Runs in envs/tools.  Usage: eval_guitar_split.py <slakh_track_or_moises_song_dir> <work_dir> <midi_variant> [csv]
+Runs in envs/tools.  Usage: eval_guitar_split.py <slakh_track_dir> <work_dir> <midi_variant> [csv]
 Each estimated guitar note is matched (same pitch, onset within 50 ms) to the reference guitar stems.
 Notes matching exactly one stem are scored; the reference stems are split into two groups in every
 possible way and the best grouping (and track order) is kept, since our outputs have no fixed identity.
@@ -20,22 +19,12 @@ import yaml
 
 from eval_midi import ONSET_TOL, midi_notes
 from merge import drop_zero_length
-from refine_notes import LAG_S
 
 FIELDS = ["track", "variant", "n_ref_guitars", "n_scored", "share_both", "balanced_acc"]
 
 
-def moises_guitars(song: Path) -> list[list[dict]]:
-    """Transcribed notes of every MoisesDB guitar track, lag-shifted like our refined notes."""
-    lag = LAG_S["guitar"]
-    return [[{**n, "start": n["start"] - lag, "end": n["end"] - lag} for n in json.loads(f.read_text())["notes"]]
-            for f in sorted((song / "guitar").glob("*.json"))]
-
-
 def reference_guitars(track: Path) -> list[list[dict]]:
-    """Notes of every rendered Slakh guitar stem that has MIDI (or every MoisesDB guitar track), one list each."""
-    if (track / "data.json").exists():
-        return moises_guitars(track)
+    """Notes of every rendered Slakh guitar stem that has MIDI, one list each."""
     meta = yaml.safe_load((track / "metadata.yaml").read_text())["stems"]
     return [midi_notes(track / "MIDI" / f"{sid}.mid") for sid, s in meta.items()
             if s["inst_class"] == "Guitar" and s.get("audio_rendered") and (track / "MIDI" / f"{sid}.mid").exists()]
