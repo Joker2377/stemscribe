@@ -5,6 +5,11 @@ Reads 01_stems/<v>/<stem>.wav + 02_midi/<v>/<stem>.json, writes 02_midi/<v>_refi
 - lag: every note of a stem moves earlier by LAG_S[stem] (measured on Slakh, eval_midi median onset error)
 - tail: a pitched note ends where the energy at its harmonics has fallen DROP_DB below its attack peak
 - blips: notes shorter than MIN_NOTE_S are dropped (raw MuScriptor output; ~10% of bass notes are < 20 ms)
+- silence: every stem's notes end where the stem goes silent (MuScriptor gets no note-off from silence:
+  demo lead vocal held one A4 196.5 -> 230.3 s across a 30 s gap the karaoke split left empty)
+- crowding: stems without a tail trim (piano, vocals, ...) still get one, at POLY_DROP_DB, for notes that overlap
+  a moment with more than POLY_MAX notes sounding (MuScriptor sometimes keeps re-tying dozens of notes chunk
+  after chunk: demo piano 33-48 s had 40-49 at once, pitches 19-104)
 """
 import json
 import sys
@@ -27,6 +32,14 @@ for _g in ("guitar_1", "guitar_2"):  # model-split guitars get the guitar settin
 MIN_NOTE_S = {s: 0.04 for s in LAG_S}
 PEAK_S = 0.1  # the attack peak is searched in the first 100 ms of a note
 MIN_LEN_S = 0.05
+# Slakh piano F1+off test / val: 90 dB .385 -> .387 / .328 -> .326, other stems unchanged; 60 dB cut real quiet
+# piano tails (val .311).
+SILENCE_DB = 90.0     # a frame is silent when its power is this far below the stem's loudest frame
+SILENCE_MIN_S = 0.3   # a note is cut at the first silent run at least this long
+# Real Slakh piano peaks at 4-8 notes at once; 3 of 22 tracks hit 34-59 (the same failure). Scores unchanged
+# (the crowded notes match nothing), while trimming every piano note at 20-30 dB lowers test F1+off .387 -> .34-.36.
+POLY_MAX = 16
+POLY_DROP_DB = 20.0
 
 
 def mono_power(wav: Path) -> tuple[np.ndarray, int]:
@@ -58,19 +71,59 @@ def trimmed_end(note: dict, energy: np.ndarray, sr: int, drop_db: float) -> floa
     return float(min(note["end"], max(end, note["start"] + MIN_LEN_S)))
 
 
-def refine(notes: list[dict], power: np.ndarray | None, sr: int, lag: float, drop_db: float | None,
-           min_len: float = 0.0) -> list[dict]:
-    """Drop notes shorter than min_len, shift the rest earlier by lag and (if drop_db) trim their tails
-    against the stem's power spectrogram."""
+def silent_frames(power: np.ndarray) -> np.ndarray:
+    """Per-frame flag: total power SILENCE_DB below the loudest frame of the stem."""
+    frame = power.sum(0)
+    return frame <= frame.max() * 10 ** (-SILENCE_DB / 10)
+
+
+def silence_end(note: dict, silent: np.ndarray, sr: int) -> float:
+    """Start of the first silent run (>= SILENCE_MIN_S) inside the note, else the note's own end."""
+    f0, f1 = int(note["start"] * sr / HOP), int(note["end"] * sr / HOP) + 1
+    k = max(1, int(np.ceil(SILENCE_MIN_S * sr / HOP)))
+    seg = silent[f0:f1].astype(int)
+    if len(seg) < k:
+        return note["end"]
+    runs = np.nonzero(np.convolve(seg, np.ones(k, int), "valid") == k)[0]
+    if len(runs) == 0:
+        return note["end"]
+    return float(min(note["end"], max((f0 + runs[0]) * HOP / sr, note["start"] + MIN_LEN_S)))
+
+
+def crowded_spans(notes: list[dict], max_poly: int) -> list[tuple[float, float]]:
+    """Time spans where more than max_poly notes sound at once."""
+    events = sorted([(n["start"], 1) for n in notes] + [(n["end"], -1) for n in notes])
+    spans, count, since = [], 0, None
+    for t, step in events:
+        count += step
+        if count > max_poly and since is None:
+            since = t
+        elif count <= max_poly and since is not None:
+            spans.append((since, t))
+            since = None
+    return spans
+
+
+def overlaps(note: dict, spans: list[tuple[float, float]]) -> bool:
+    """Whether the note overlaps any of the spans."""
+    return any(a < note["end"] and note["start"] < b for a, b in spans)
+
+
+def refine(notes: list[dict], power: np.ndarray, sr: int, lag: float, drop_db: float | None,
+           min_len: float = 0.0, crowd_trim: bool = False) -> list[dict]:
+    """Drop notes shorter than min_len, cut notes at stem silence, trim tails against the stem's power
+    spectrogram (all notes at drop_db; else, with crowd_trim, crowded notes at POLY_DROP_DB), shift by lag."""
     cache: dict[int, np.ndarray] = {}
+    silent = silent_frames(power)
+    kept = [{**n, "end": silence_end(n, silent, sr)} for n in notes if n["end"] - n["start"] >= min_len]
+    crowded = crowded_spans(kept, POLY_MAX) if crowd_trim and drop_db is None else []
     out = []
-    for n in notes:
-        if n["end"] - n["start"] < min_len:
-            continue
-        if drop_db is not None and power is not None:
+    for n in kept:
+        db = drop_db if drop_db is not None else (POLY_DROP_DB if overlaps(n, crowded) else None)
+        if db is not None:
             if n["pitch"] not in cache:
                 cache[n["pitch"]] = harmonic_energy(n["pitch"], power, sr)
-            n = {**n, "end": trimmed_end(n, cache[n["pitch"]], sr, drop_db)}
+            n = {**n, "end": trimmed_end(n, cache[n["pitch"]], sr, db)}
         out.append({**n, "start": max(0.0, n["start"] - lag), "end": max(0.0, n["end"] - lag)})
     return out
 
@@ -82,10 +135,12 @@ def main(work: Path, variant: str) -> None:
     for path in sorted(src.glob("*.json")):
         stem, data = path.stem, json.loads(path.read_text())
         drop = DROP_DB.get(stem)
-        power, sr = mono_power(work / "01_stems" / variant / f"{stem}.wav") if drop else (None, 0)
+        power, sr = mono_power(work / "01_stems" / variant / f"{stem}.wav")
         min_len = MIN_NOTE_S.get(stem, 0.0)
-        data["notes"] = refine(data["notes"], power, sr, LAG_S.get(stem, 0.0), drop, min_len)
-        data["refine"] = {"lag_s": LAG_S.get(stem, 0.0), "drop_db": drop, "min_note_s": min_len}
+        data["notes"] = refine(data["notes"], power, sr, LAG_S.get(stem, 0.0), drop, min_len,
+                               crowd_trim=stem != "drums")
+        data["refine"] = {"lag_s": LAG_S.get(stem, 0.0), "drop_db": drop, "min_note_s": min_len,
+                          "silence_db": SILENCE_DB, "poly_max": POLY_MAX}
         (dst / path.name).write_text(json.dumps(data))
         print(f"{stem}: lag {LAG_S.get(stem, 0.0) * 1000:.1f} ms, tail drop {drop} dB", flush=True)
 

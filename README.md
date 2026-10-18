@@ -12,7 +12,7 @@ Personal, non-commercial use (MuScriptor and BS-Roformer-SW weights are CC BY-NC
 | dereverb | `dereverb.py` (vocals: karaoke split into lead / backing first) | separator | `01_stems/<sep>_dry/` |
 | transcribe | `transcribe.py` (MuScriptor medium) | muscriptor | `02_midi/<sep>_dry/<stem>.json` |
 | split_guitars | `split_guitars_model.py` (trained high / low splitter, see below; outputs sum to the input) | separator | `01_stems/<sep>_dry_gmodel/guitar_{1,2}.wav` |
-| refine | `refine_notes.py` (onset lag, note-tail trim, drop < 40 ms blips) | tools | `02_midi/<sep>_dry_refined/<stem>.json` |
+| refine | `refine_notes.py` (onset lag, note-tail trim, drop < 40 ms blips, cut notes at stem silence / in > 16-note pile-ups) | tools | `02_midi/<sep>_dry_refined/<stem>.json` |
 | assign_guitars | `assign_guitars.py` (per-note energy in the model's two guitars; `smooth` mode also averages neighbours, fewer track hops) | tools | `02_midi/<sep>_dry_refined_modelassign/guitar_{1,2}.json` |
 | merge | `merge.py` | tools | `02_midi/<sep>_dry_refined_modelassign/song.mid` |
 
@@ -33,6 +33,18 @@ uv pip install --python envs/tools/Scripts/python.exe -r requirements/tools.txt 
 ```
 
 Separation / dereverb weights download to `envs/models/` on first use. Set `PYTHONIOENCODING=utf-8` on Windows.
+
+## Web UI
+
+```
+python server.py [port]        # http://localhost:8000 (stdlib only, same Python as run.py)
+```
+
+Upload a song (queued, one pipeline run at a time); the left list shows each song's stage progress.
+A finished song opens as a multitrack piano roll (one lane per track, bar/beat grid from the beat tracker).
+MIDI plays in the browser with a small Web Audio synth (`web/synth.js`), scheduled on the same
+`AudioContext` clock as the playhead and the original audio (`00_prep/master.wav`), so notes, sound and roll line up.
+Overall volume, original-song / MIDI balance, per-track volume / mute / solo; `song.mid` download.
 
 ## Evaluation
 
