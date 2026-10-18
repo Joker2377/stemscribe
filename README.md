@@ -10,11 +10,11 @@ Personal, non-commercial use (MuScriptor and BS-Roformer-SW weights are CC BY-NC
 | prep | `prep.py` | beat_this | `00_prep/master.wav`, `analysis.json` (beats, downbeats, stereo stats) |
 | separate | `separate_uvr.py` (BS-Roformer-SW; `separate.py` = htdemucs_6s baseline) | separator / demucs | `01_stems/<sep>/` |
 | dereverb | `dereverb.py` (vocals: karaoke split into lead / backing first) | separator | `01_stems/<sep>_dry/` |
-| transcribe | `transcribe.py` (MuScriptor medium) | muscriptor | `02_midi/<sep>_dry/<stem>.json` |
+| transcribe | `transcribe.py --window` (MuScriptor medium; two half-offset passes without tie forcing, window centres stitched by `window_stitch.py`) | muscriptor | `02_midi/<sep>_dry_win/<stem>.json` |
 | split_guitars | `split_guitars_model.py` (trained high / low splitter, see below; outputs sum to the input) | separator | `01_stems/<sep>_dry_gmodel/guitar_{1,2}.wav` |
-| refine | `refine_notes.py` (onset lag, note-tail trim, drop < 40 ms blips, cut notes at stem silence / in > 16-note pile-ups) | tools | `02_midi/<sep>_dry_refined/<stem>.json` |
-| assign_guitars | `assign_guitars.py` (per-note energy in the model's two guitars; `smooth` mode also averages neighbours, fewer track hops) | tools | `02_midi/<sep>_dry_refined_modelassign/guitar_{1,2}.json` |
-| merge | `merge.py` | tools | `02_midi/<sep>_dry_refined_modelassign/song.mid` |
+| refine | `refine_notes.py` (onset lag, note-tail trim, drop < 40 ms blips and notes starting in stem silence, cut notes at silence / in > 16-note pile-ups) | tools | `02_midi/<sep>_dry_win_refined/<stem>.json` |
+| assign_guitars | `assign_guitars.py` (per-note energy in the model's two guitars; `smooth` mode also averages neighbours, fewer track hops) | tools | `02_midi/<sep>_dry_win_refined_modelassign/guitar_{1,2}.json` |
+| merge | `merge.py` | tools | `02_midi/<sep>_dry_win_refined_modelassign/song.mid` |
 
 Each stage runs in its own venv as a subprocess and is skipped when its output exists (`--force stage,...` to redo).
 
@@ -62,14 +62,15 @@ octave-transposed patches. `eval_guitar_split.py` scores the two-guitar split (b
 Self-checks: `test_*.py` (each runs on its own: `python test_x.py` in the venv named in its docstring).
 
 Current scores (onset F1, test 10 / validation 12; "oracle" = transcribing the true stems, validation):
+(oracle: measured before windowed transcription and the silence rules in refine)
 
 | stem | test | val | oracle |
 | --- | --- | --- | --- |
-| guitar | 0.577 | 0.578 | 0.780 |
-| piano | 0.710 | 0.780 | 0.902 |
-| bass | 0.844 | 0.884 | 0.938 |
-| drums | 0.860 | 0.820 | 0.865 |
-| guitar split (balanced acc) | 0.756 | 0.676 | |
+| guitar | 0.604 | 0.606 | 0.780 |
+| piano | 0.748 | 0.799 | 0.902 |
+| bass | 0.944 | 0.924 | 0.938 |
+| drums | 0.866 | 0.831 | 0.865 |
+| guitar split (balanced acc) | 0.752 | 0.687 | |
 
 ## Two-guitar splitter
 

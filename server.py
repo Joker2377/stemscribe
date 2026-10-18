@@ -68,9 +68,15 @@ def song_info(work: Path) -> dict:
     }
 
 
+def is_eval_song(work: Path) -> bool:
+    """Whether a work folder is a Slakh evaluation cache (input under dataset/), not a user's song."""
+    src = Path(json.loads((work / "manifest.json").read_text())["input"]["path"])
+    return src.is_relative_to(ROOT / "dataset")
+
+
 def list_songs() -> list[dict]:
-    """Every pipeline folder under work/ (those with a manifest), newest first."""
-    dirs = [d for d in run.WORK.iterdir() if (d / "manifest.json").exists()]
+    """Every user song folder under work/ (with a manifest, not an eval cache), newest first."""
+    dirs = [d for d in run.WORK.iterdir() if (d / "manifest.json").exists() and not is_eval_song(d)]
     dirs.sort(key=lambda d: (d / "manifest.json").stat().st_mtime, reverse=True)
     return [song_info(d) for d in dirs]
 

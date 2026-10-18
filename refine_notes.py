@@ -1,12 +1,13 @@
 """Stage 3.2: fix MuScriptor's constant onset lag and over-long note tails.
 
-Runs in envs/tools.  Usage: refine_notes.py <work_dir> <stem_variant>
-Reads 01_stems/<v>/<stem>.wav + 02_midi/<v>/<stem>.json, writes 02_midi/<v>_refined/<stem>.json.
+Runs in envs/tools.  Usage: refine_notes.py <work_dir> <stem_variant> [midi_variant=stem_variant]
+Reads 01_stems/<v>/<stem>.wav + 02_midi/<m>/<stem>.json, writes 02_midi/<m>_refined/<stem>.json.
 - lag: every note of a stem moves earlier by LAG_S[stem] (measured on Slakh, eval_midi median onset error)
 - tail: a pitched note ends where the energy at its harmonics has fallen DROP_DB below its attack peak
 - blips: notes shorter than MIN_NOTE_S are dropped (raw MuScriptor output; ~10% of bass notes are < 20 ms)
 - silence: every stem's notes end where the stem goes silent (MuScriptor gets no note-off from silence:
-  demo lead vocal held one A4 196.5 -> 230.3 s across a 30 s gap the karaoke split left empty)
+  demo lead vocal held one A4 196.5 -> 230.3 s across a 30 s gap the karaoke split left empty); notes that
+  start in silence are dropped (demo bass: 197 repeated A2s over a silent 134-169 s)
 - crowding: stems without a tail trim (piano, vocals, ...) still get one, at POLY_DROP_DB, for notes that overlap
   a moment with more than POLY_MAX notes sounding (MuScriptor sometimes keeps re-tying dozens of notes chunk
   after chunk: demo piano 33-48 s had 40-49 at once, pitches 19-104)
@@ -38,6 +39,9 @@ SILENCE_DB = 90.0     # a frame is silent when its power is this far below the s
 SILENCE_MIN_S = 0.3   # a note is cut at the first silent run at least this long
 # Real Slakh piano peaks at 4-8 notes at once; 3 of 22 tracks hit 34-59 (the same failure). Scores unchanged
 # (the crowded notes match nothing), while trimming every piano note at 20-30 dB lowers test F1+off .387 -> .34-.36.
+# A real onset is audible: notes whose first SILENCE_MIN_S averages ONSET_QUIET_DB below the loudest frame go
+# (demo bass 135-169 s sits on -77..-100 dB leakage, so "all frames silent" alone misses them).
+ONSET_QUIET_DB = 60.0
 POLY_MAX = 16
 POLY_DROP_DB = 20.0
 
@@ -109,13 +113,28 @@ def overlaps(note: dict, spans: list[tuple[float, float]]) -> bool:
     return any(a < note["end"] and note["start"] < b for a, b in spans)
 
 
+def frame_level_db(power: np.ndarray) -> np.ndarray:
+    """Per-frame total power in dB relative to the stem's loudest frame."""
+    frame = power.sum(0)
+    return 10 * np.log10(frame / max(frame.max(), 1e-30) + 1e-30)
+
+
+def starts_in_silence(note: dict, level_db: np.ndarray, sr: int) -> bool:
+    """Whether the note's first SILENCE_MIN_S (or whole length, if shorter) averages ONSET_QUIET_DB below peak."""
+    f0 = int(note["start"] * sr / HOP)
+    f1 = max(f0 + 1, min(int(note["end"] * sr / HOP), f0 + int(np.ceil(SILENCE_MIN_S * sr / HOP))))
+    seg = level_db[f0:f1]
+    return len(seg) > 0 and 10 * np.log10(np.mean(10 ** (seg / 10))) < -ONSET_QUIET_DB
+
+
 def refine(notes: list[dict], power: np.ndarray, sr: int, lag: float, drop_db: float | None,
            min_len: float = 0.0, crowd_trim: bool = False) -> list[dict]:
-    """Drop notes shorter than min_len, cut notes at stem silence, trim tails against the stem's power
+    """Drop notes shorter than min_len or starting in stem silence, cut notes at silence, trim tails against the stem's power
     spectrogram (all notes at drop_db; else, with crowd_trim, crowded notes at POLY_DROP_DB), shift by lag."""
     cache: dict[int, np.ndarray] = {}
-    silent = silent_frames(power)
-    kept = [{**n, "end": silence_end(n, silent, sr)} for n in notes if n["end"] - n["start"] >= min_len]
+    silent, level_db = silent_frames(power), frame_level_db(power)
+    kept = [{**n, "end": silence_end(n, silent, sr)} for n in notes
+            if n["end"] - n["start"] >= min_len and not starts_in_silence(n, level_db, sr)]
     crowded = crowded_spans(kept, POLY_MAX) if crowd_trim and drop_db is None else []
     out = []
     for n in kept:
@@ -128,9 +147,10 @@ def refine(notes: list[dict], power: np.ndarray, sr: int, lag: float, drop_db: f
     return out
 
 
-def main(work: Path, variant: str) -> None:
-    """Refine every stem json of 02_midi/<variant>/ into 02_midi/<variant>_refined/."""
-    src, dst = work / "02_midi" / variant, work / "02_midi" / f"{variant}_refined"
+def main(work: Path, variant: str, midi_variant: str) -> None:
+    """Refine every stem json of 02_midi/<midi_variant>/ into 02_midi/<midi_variant>_refined/,
+    measuring against the audio of 01_stems/<variant>/."""
+    src, dst = work / "02_midi" / midi_variant, work / "02_midi" / f"{midi_variant}_refined"
     dst.mkdir(parents=True, exist_ok=True)
     for path in sorted(src.glob("*.json")):
         stem, data = path.stem, json.loads(path.read_text())
@@ -146,4 +166,4 @@ def main(work: Path, variant: str) -> None:
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]), sys.argv[2])
+    main(Path(sys.argv[1]), sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else sys.argv[2])

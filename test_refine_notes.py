@@ -7,13 +7,16 @@ SR = 44100
 
 
 def test_note_cut_at_silence() -> None:
-    """A note held across a silent gap ends where the gap starts; notes over sound are untouched."""
+    """A note held across a silent gap ends where the gap starts; notes starting in it are dropped."""
     fps = SR / HOP
     power = np.ones((64, int(10 * fps)))
     power[:, int(4 * fps):int(8 * fps)] = 0.0  # silent 4-8 s
     notes = [{"pitch": 69, "start": 1.0, "end": 9.0}, {"pitch": 60, "start": 1.0, "end": 3.0},
-             {"pitch": 62, "start": 3.9, "end": 4.1}]  # short dip into silence (< SILENCE_MIN_S) stays
-    held, sound, short = refine(notes, power, SR, 0.0, None)
+             {"pitch": 62, "start": 3.9, "end": 4.1},  # short dip into silence (< SILENCE_MIN_S) stays
+             {"pitch": 45, "start": 5.0, "end": 5.17}, {"pitch": 45, "start": 6.0, "end": 7.5}]  # in silence: dropped
+    out = refine(notes, power, SR, 0.0, None)
+    assert len(out) == 3, out
+    held, sound, short = out
     assert abs(held["end"] - 4.0) < 2 * HOP / SR, held
     assert sound["end"] == 3.0 and short["end"] == 4.1, (sound, short)
 

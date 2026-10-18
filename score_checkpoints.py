@@ -13,7 +13,7 @@ from pathlib import Path
 from run import ROOT, WORK, run_stage, song_id
 
 SPLIT = ROOT / "dataset" / "slakh_flac" / "validation"
-VARIANT, REFINED = "bs_roformer_sw_dry", "bs_roformer_sw_dry_refined"
+VARIANT, REFINED = "bs_roformer_sw_dry", "bs_roformer_sw_dry_win_refined"
 OUT_CSV = WORK / "eval" / "checkpoints.csv"
 
 

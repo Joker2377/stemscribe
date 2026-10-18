@@ -15,7 +15,7 @@ from pathlib import Path
 from run import ROOT, WORK, final_variant, run_stage, song_id
 
 SEP = "bs_roformer_sw"
-VARIANT = f"{SEP}_dry_refined"
+VARIANT = f"{SEP}_dry_win_refined"
 OUT_CSV = WORK / "eval" / "results.csv"
 SPLIT_CSV = WORK / "eval" / "guitar_split.csv"
 
