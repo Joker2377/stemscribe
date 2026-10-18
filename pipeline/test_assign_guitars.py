@@ -1,4 +1,4 @@
-"""Self-check for assign_guitars' neighbour smoothing.  Run in envs/tools: python test_assign_guitars.py"""
+"""Self-check for assign_guitars' neighbour smoothing.  Run in envs/tools: python pipeline/test_assign_guitars.py"""
 from assign_guitars import smooth_pans
 
 

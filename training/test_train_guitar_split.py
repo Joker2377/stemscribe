@@ -1,4 +1,4 @@
-"""Self-check for the guitar-split loss, role order and augmentation.  Run in envs/separator: python test_train_guitar_split.py"""
+"""Self-check for the guitar-split loss, role order and augmentation.  Run in envs/separator: python training/test_train_guitar_split.py"""
 import random
 
 import numpy as np

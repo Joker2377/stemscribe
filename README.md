@@ -1,90 +1,62 @@
-# music_decompose
+# stemscribe
 
-Song → multitrack MIDI (vocals, bass, drums, piano, two guitars), with a beat-tracked tempo map that follows tempo changes.
-Personal, non-commercial use (MuScriptor and BS-Roformer-SW weights are CC BY-NC).
+Turn a song into multitrack MIDI (lead / backing vocals, bass, drums, piano, two guitars, other) and play it back in the browser next to the original.
 
-## Pipeline (`run.py`)
+![Workflow](assets/workflow.svg)
 
-| stage | script | venv | output in `work/<song_id>/` |
-| --- | --- | --- | --- |
-| prep | `prep.py` | beat_this | `00_prep/master.wav`, `analysis.json` (beats, downbeats, stereo stats) |
-| separate | `separate_uvr.py` (BS-Roformer-SW; `separate.py` = htdemucs_6s baseline) | separator / demucs | `01_stems/<sep>/` |
-| dereverb | `dereverb.py` (vocals: karaoke split into lead / backing first) | separator | `01_stems/<sep>_dry/` |
-| transcribe | `transcribe.py --window` (MuScriptor medium; two half-offset passes without tie forcing, window centres stitched by `window_stitch.py`) | muscriptor | `02_midi/<sep>_dry_win/<stem>.json` |
-| split_guitars | `split_guitars_model.py` (trained high / low splitter, see below; outputs sum to the input) | separator | `01_stems/<sep>_dry_gmodel/guitar_{1,2}.wav` |
-| refine | `refine_notes.py` (onset lag, note-tail trim, drop < 40 ms blips and notes starting in stem silence, cut notes at silence / in > 16-note pile-ups) | tools | `02_midi/<sep>_dry_win_refined/<stem>.json` |
-| assign_guitars | `assign_guitars.py` (per-note energy in the model's two guitars; `smooth` mode also averages neighbours, fewer track hops) | tools | `02_midi/<sep>_dry_win_refined_modelassign/guitar_{1,2}.json` |
-| merge | `merge.py` | tools | `02_midi/<sep>_dry_win_refined_modelassign/song.mid` |
-
-Each stage runs in its own venv as a subprocess and is skipped when its output exists (`--force stage,...` to redo).
-
-```
-python run.py song.mp3 [--sep bs_roformer_sw|htdemucs_6s] [--force transcribe,merge]
-```
+Personal, non-commercial use: the MuScriptor and BS-Roformer-SW weights are CC BY-NC.
 
 ## Setup
 
-Python 3.11 venvs under `envs/<name>/` (git-ignored), one per `requirements/<name>.txt`:
+You need Python 3.11, [uv](https://docs.astral.sh/uv/), `ffmpeg` on the PATH, and an NVIDIA GPU.
+
+Each stage runs in its own venv under `envs/`. Create one per file in `requirements/`:
 
 ```
-uv venv envs/tools --python 3.11
-uv pip install --python envs/tools/Scripts/python.exe -r requirements/tools.txt \
-    --extra-index-url https://download.pytorch.org/whl/cu128
+for name in beat_this separator muscriptor tools; do
+  uv venv envs/$name --python 3.11
+  uv pip install --python envs/$name/Scripts/python.exe -r requirements/$name.txt \
+      --extra-index-url https://download.pytorch.org/whl/cu128
+done
 ```
 
-Separation / dereverb weights download to `envs/models/` on first use. Set `PYTHONIOENCODING=utf-8` on Windows.
+On Linux or macOS, use `envs/$name/bin/python`. On Windows, set `PYTHONIOENCODING=utf-8`.
 
-## Web UI
+Model weights download to `envs/models/` the first time they are used. The two-guitar splitter is the exception: it is trained locally (see below) and is expected at `envs/models/guitar_split_run5_gap/best.pt`.
 
-```
-python server.py [port]        # http://localhost:8000 (stdlib only, same Python as run.py)
-```
+## Use it
 
-Upload a song (queued, one pipeline run at a time); the left list shows each song's stage progress.
-A finished song opens as a multitrack piano roll (one lane per track, bar/beat grid from the beat tracker).
-MIDI plays in the browser with a small Web Audio synth (`web/synth.js`), scheduled on the same
-`AudioContext` clock as the playhead and the original audio (`00_prep/master.wav`), so notes, sound and roll line up.
-Overall volume, original-song / MIDI balance, per-track volume / mute / solo; `song.mid` download.
-
-## Evaluation
+**Web UI** (recommended)
 
 ```
-envs/tools/Scripts/python.exe fetch_slakh.py dataset/slakh 10   # Slakh2100 test tracks with guitar+piano+bass+drums
-python eval_batch.py                                              # -> work/eval/results.csv + mean table
-python eval_batch.py dataset/slakh_flac/validation slakh_val_tracks.txt    # 12 validation tracks (full Slakh, below)
-envs/tools/Scripts/python.exe oracle_stems.py <slakh_track>        # transcribe the true stems (no separation)
-envs/tools/Scripts/python.exe error_breakdown.py <variant> <slakh_track>...   # what kind of errors
-envs/tools/Scripts/python.exe note_continuity.py <variant> <slakh_track>...   # fragmented / glued notes, guitar track hopping
+python server.py            # open http://localhost:8000
 ```
 
-`eval_midi.py` scores note F1 with mir_eval (onset, onset+offset; drums onset only), aligning Slakh's
-octave-transposed patches. `eval_guitar_split.py` scores the two-guitar split (balanced accuracy, 0.5 = no split).
-Self-checks: `test_*.py` (each runs on its own: `python test_x.py` in the venv named in its docstring).
+1. Click **上傳歌曲** and pick an audio file. Progress shows in the left list; a 4-minute song takes a few minutes.
+2. Click the finished song. Each track gets its own lane.
+3. **Space** plays or pauses. Click the roll to jump. Scroll to move, and Ctrl+scroll to zoom.
+4. Use the sliders for overall volume, the balance between the original and the MIDI, and per-track volume. **M** mutes a track and **S** solos it.
+5. Download `song.mid`.
 
-Current scores (onset F1, test 10 / validation 12; "oracle" = transcribing the true stems, validation):
-(oracle: measured before windowed transcription and the silence rules in refine)
-
-| stem | test | val | oracle |
-| --- | --- | --- | --- |
-| guitar | 0.604 | 0.606 | 0.780 |
-| piano | 0.748 | 0.799 | 0.902 |
-| bass | 0.944 | 0.924 | 0.938 |
-| drums | 0.866 | 0.831 | 0.865 |
-| guitar split (balanced acc) | 0.752 | 0.687 | |
-
-## Two-guitar splitter
-
-A mono Mel-Roformer trained on Slakh2100 guitar stems to split one guitar signal into the higher and the lower part.
+**Command line**
 
 ```
-envs/tools/Scripts/python.exe fetch_slakh_full.py                  # full Slakh (flac) -> dataset/slakh_flac/
-envs/separator/Scripts/python.exe train_guitar_split.py 10 [--resume | --init=<ckpt>]   # -> envs/models/guitar_split/
-python score_checkpoints.py envs/models/guitar_split               # pick a checkpoint on the real task
+python run.py song.mp3
 ```
 
-The pipeline uses run 5 (`envs/models/guitar_split_run5_gap/best.pt`, set in `split_guitars_model.py`).
-The current training script adds input augmentation (tone, bleed, limiting); that run (6) did not beat run 5.
+The result is `work/<song_id>/02_midi/bs_roformer_sw_dry_win_refined_modelassign/song.mid`. Steps that already finished are skipped on re-runs. To redo some of them, pass `--force transcribe,merge`.
 
-Shelved code lives in `archive/` (git-ignored): MoisesDB real-multitrack training (`archive/moisesdb/`) and
-fine-tuning MuScriptor to output the two guitars directly (`archive/plan_c_tx/`; did not beat the current flow,
-see notes/roadmap.md).
+## Layout
+
+```
+run.py, server.py   entry points: command line / web UI
+pipeline/           one script per stage (run by run.py, each in its venv) + their self-checks
+training/           two-guitar splitter training
+web/                browser UI (plain JS modules, no build)
+work/<song_id>/     all outputs (git-ignored)
+```
+
+## Development
+
+- Self-checks are the `test_*.py` files next to the code. Each one runs on its own, for example `envs/tools/Scripts/python.exe pipeline/test_merge.py`; the docstring names the venv to use.
+- Two-guitar splitter: `training/fetch_slakh_full.py` downloads Slakh2100 to `dataset/slakh_flac/`. Then train with `envs/separator/Scripts/python.exe training/train_guitar_split.py 10`.

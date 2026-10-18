@@ -1,4 +1,4 @@
-"""Self-check for window_stitch.  Run with any Python: python test_window_stitch.py"""
+"""Self-check for window_stitch.  Run with any Python: python pipeline/test_window_stitch.py"""
 from window_stitch import combine, segment_index
 
 

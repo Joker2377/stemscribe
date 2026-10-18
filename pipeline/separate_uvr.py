@@ -14,7 +14,7 @@ from audio_separator.separator import Separator
 
 from stems_io import write_stems
 
-MODEL_DIR = Path(__file__).parent / "envs" / "models"
+MODEL_DIR = Path(__file__).resolve().parents[1] / "envs" / "models"
 
 
 def stem_name(path: Path) -> str:

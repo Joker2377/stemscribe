@@ -31,7 +31,7 @@ from functools import lru_cache
 from audio_separator.separator.uvr_lib_v5.roformer.mel_band_roformer import MelBandRoformer
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "dataset" / "slakh_flac"
 CKPT = ROOT / "envs" / "models" / "guitar_split"
 LOG = ROOT / "work" / "train_guitar" / "log.csv"

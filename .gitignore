@@ -6,3 +6,5 @@ envs/
 dataset/
 __pycache__/
 archive/
+# evaluation / scoring tools (kept locally)
+eval/

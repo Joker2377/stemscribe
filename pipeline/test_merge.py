@@ -1,6 +1,6 @@
 """Alignment check for merge.py: tempo change 90 -> 140 BPM must not drift.
 
-Run: envs/tools/Scripts/python test_merge.py
+Run: envs/tools/Scripts/python pipeline/test_merge.py
 """
 import tempfile
 from pathlib import Path

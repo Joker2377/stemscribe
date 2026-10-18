@@ -14,10 +14,10 @@ import soundfile as sf
 import torch
 from audio_separator.separator.uvr_lib_v5.roformer.mel_band_roformer import MelBandRoformer
 
-from train_guitar_split import SEG
+SEG = 8 * 44100  # chunk length the model was trained on (training/train_guitar_split.py SEG)
 
 # Run 5 + mixture consistency beat run 6 (Slakh balanced_acc test 0.756 vs 0.700, val 0.676 vs 0.669)
-MODEL = Path(__file__).parent / "envs" / "models" / "guitar_split_run5_gap" / "best.pt"  # frozen copy; training writes guitar_split/
+MODEL = Path(__file__).resolve().parents[1] / "envs" / "models" / "guitar_split_run5_gap" / "best.pt"  # frozen copy; training writes guitar_split/
 
 HOP = SEG // 2
 BATCH = 8

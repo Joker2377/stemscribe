@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 960 536" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="workflow-title workflow-desc" id="workflow-root">
+        <title id="workflow-title">一首歌怎麼變成多軌 MIDI</title>
+        <desc id="workflow-desc">上傳的歌曲先拆成各樂器分軌，AI 逐段聽寫成音符，修整後把吉他分成兩軌，配上節拍合成 MIDI，最後在網頁上和原曲同步播放。</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #workflow-root { font-family: 'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif; color: #2d3142; }
+      #workflow-root .diagram-container { width: 100%; overflow-x: auto; }
+      #workflow-root .diagram-container { overflow-x: visible; }</style>
+          <marker id="workflow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="workflow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+        <path d="M 172 100.0 L 210 100.0" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#workflow-arrow)"/>
+        <path d="M 364 100.0 L 402 100.0" fill="none" stroke="#bf4520" stroke-width="1.2" marker-end="url(#workflow-arrow-accent)"/>
+        <path d="M 556 100.0 L 594 100.0" fill="none" stroke="#bf4520" stroke-width="1.2" marker-end="url(#workflow-arrow-accent)"/>
+        <path d="M 748 100.0 L 786 100.0" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#workflow-arrow)"/>
+        <path d="M 96.0 136 L 96.0 234" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#workflow-arrow)"/>
+        <path d="M 864.0 136 L 864.0 234" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#workflow-arrow)"/>
+        <path d="M 172 272.0 L 786 272.0" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#workflow-arrow)"/>
+        <rect x="436.0" y="248.0" width="88" height="16" rx="2" fill="#f5f5f5"/><text x="480.0" y="260.0" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >速度與小節線</text>
+        <path d="M 864.0 308 L 864.0 370" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#workflow-arrow)"/>
+        <rect x="20" y="64" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="20" y="64" width="152" height="72" rx="6" fill="#4f5d75" stroke="#5a6580" stroke-width="1" fill-opacity="0.10"/>
+        <rect x="28" y="72" width="42" height="12" rx="2" fill="none" stroke="#5a6580" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="49.0" y="81" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">INPUT</text>
+        <text x="96.0" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >上傳歌曲</text>
+        <text x="96.0" y="124" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >mp3 · wav · flac</text>
+        <rect x="212" y="64" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="212" y="64" width="152" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="220" y="72" width="48" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="244.0" y="81" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">STEP 1</text>
+        <text x="288.0" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >拆成各樂器</text>
+        <text x="288.0" y="124" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >BS-Roformer · 7 stems</text>
+        <rect x="404" y="64" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="404" y="64" width="152" height="72" rx="6" fill="#fbeee9" stroke="#bf4520" stroke-width="1"/>
+        <rect x="412" y="72" width="48" height="12" rx="2" fill="none" stroke="#bf4520" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="436.0" y="81" fill="#bf4520" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">STEP 2</text>
+        <text x="480.0" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >聽寫成音符</text>
+        <text x="480.0" y="124" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >MuScriptor · 5 s windows</text>
+        <rect x="596" y="64" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="596" y="64" width="152" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="604" y="72" width="48" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="628.0" y="81" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">STEP 3</text>
+        <text x="672.0" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >修整音符</text>
+        <text x="672.0" y="124" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >timing · silence · tails</text>
+        <rect x="788" y="64" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="788" y="64" width="152" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="796" y="72" width="48" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="820.0" y="81" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">STEP 4</text>
+        <text x="864.0" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >分出兩把吉他</text>
+        <text x="864.0" y="124" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >guitar 1 / guitar 2</text>
+        <rect x="20" y="236" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="20" y="236" width="152" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="28" y="244" width="36" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="46.0" y="253" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">SIDE</text>
+        <text x="96.0" y="280" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >抓節拍</text>
+        <text x="96.0" y="296" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >beat_this</text>
+        <rect x="788" y="236" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="788" y="236" width="152" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="796" y="244" width="48" height="12" rx="2" fill="none" stroke="#2d3142" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="820.0" y="253" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">STEP 5</text>
+        <text x="864.0" y="280" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >合成 MIDI</text>
+        <text x="864.0" y="296" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >song.mid · 8 tracks</text>
+        <rect x="788" y="372" width="152" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="788" y="372" width="152" height="72" rx="6" fill="#4f5d75" stroke="#5a6580" stroke-width="1" fill-opacity="0.10"/>
+        <rect x="796" y="380" width="48" height="12" rx="2" fill="none" stroke="#5a6580" stroke-opacity="0.5" stroke-width="0.8"/>
+        <text x="820.0" y="389" fill="#4f5d75" font-size="7" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">OUTPUT</text>
+        <text x="864.0" y="416" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >網頁播放器</text>
+        <text x="864.0" y="432" fill="#4f5d75" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" >piano roll + audio</text>
+        <text x="288.0" y="160" fill="#4f5d75" font-size="12" font-weight="400" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >人聲、吉他、鋼琴、貝斯、鼓…</text>
+        <text x="480.0" y="160" fill="#4f5d75" font-size="12" font-weight="400" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >每 5 秒聽一段，兩遍錯開拼接</text>
+        <text x="672.0" y="160" fill="#4f5d75" font-size="12" font-weight="400" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >對齊時間、去掉雜音和拖長的音</text>
+        <text x="864.0" y="160" fill="#4f5d75" font-size="12" font-weight="400" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="middle" >依音色分給高／低兩把</text>
+        <text x="748" y="400" fill="#4f5d75" font-size="14" font-weight="400" font-family="'Instrument Serif', 'Noto Serif TC', serif" text-anchor="end" font-style="italic">原曲和 MIDI 用同一個時鐘播放，</text>
+        <text x="748" y="420" fill="#4f5d75" font-size="14" font-weight="400" font-family="'Instrument Serif', 'Noto Serif TC', serif" text-anchor="end" font-style="italic">每軌可調音量、靜音、獨奏</text>
+        <line x1="20" y1="480" x2="940" y2="480" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="20" y="498" fill="#4f5d75" font-size="8" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGEND</text>
+        <rect x="20" y="510" width="20" height="12" rx="2" fill="#4f5d75" stroke="#5a6580" fill-opacity="0.10"/>
+        <text x="48" y="521" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="start" >輸入／輸出</text>
+        <rect x="140" y="510" width="20" height="12" rx="2" fill="#ffffff" stroke="#2d3142"/>
+        <text x="168" y="521" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="start" >處理步驟</text>
+        <rect x="248" y="510" width="20" height="12" rx="2" fill="#fbeee9" stroke="#bf4520"/>
+        <text x="276" y="521" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="start" >核心：AI 聽寫音符</text>
+        <line x1="428" y1="516" x2="452" y2="516" stroke="#bf4520" stroke-width="1.2" marker-end="url(#workflow-arrow-accent)"/>
+        <text x="462" y="521" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif" text-anchor="start" >主要路徑</text>
+      </svg>

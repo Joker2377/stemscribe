@@ -14,11 +14,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 WORK = ROOT / "work"
+PIPELINE = "pipeline"  # stage scripts, relative to ROOT
 
 # separator name -> (venv, script, extra args); the name is also the stem/midi subfolder
 SEPARATORS = {
-    "htdemucs_6s": ("demucs", "separate.py", []),
-    "bs_roformer_sw": ("separator", "separate_uvr.py", ["BS-Roformer-SW.ckpt", "bs_roformer_sw"]),
+    "htdemucs_6s": ("demucs", f"{PIPELINE}/separate.py", []),
+    "bs_roformer_sw": ("separator", f"{PIPELINE}/separate_uvr.py", ["BS-Roformer-SW.ckpt", "bs_roformer_sw"]),
 }
 
 
@@ -34,14 +35,14 @@ def stages(src: Path, work: Path, sep: str) -> list[tuple[str, str, str, list[st
     w, dry = str(work), f"{sep}_dry"
     midi, refined = f"{dry}_win", f"{dry}_win_refined"
     return [
-        ("prep", "beat_this", "prep.py", [str(src), w], "00_prep/analysis.json"),
+        ("prep", "beat_this", f"{PIPELINE}/prep.py", [str(src), w], "00_prep/analysis.json"),
         ("separate", venv, script, [w, *extra], f"01_stems/{sep}/stems.json"),
-        ("dereverb", "separator", "dereverb.py", [w, sep], f"01_stems/{dry}/stems.json"),
-        ("split_guitars", "separator", "split_guitars_model.py", [w, dry], f"01_stems/{dry}_gmodel/guitar_2.wav"),
-        ("transcribe", "muscriptor", "transcribe.py", [w, dry, "medium", "--window"], f"02_midi/{midi}.done.json"),
-        ("refine", "tools", "refine_notes.py", [w, dry, midi], f"02_midi/{refined}/guitar.json"),
-        ("assign_guitars", "tools", "assign_guitars.py", [w, dry, refined, "model"], f"02_midi/{final_variant(sep)}/guitar_1.json"),
-        ("merge", "tools", "merge.py", [w, final_variant(sep)], f"02_midi/{final_variant(sep)}/song.mid"),
+        ("dereverb", "separator", f"{PIPELINE}/dereverb.py", [w, sep], f"01_stems/{dry}/stems.json"),
+        ("split_guitars", "separator", f"{PIPELINE}/split_guitars_model.py", [w, dry], f"01_stems/{dry}_gmodel/guitar_2.wav"),
+        ("transcribe", "muscriptor", f"{PIPELINE}/transcribe.py", [w, dry, "medium", "--window"], f"02_midi/{midi}.done.json"),
+        ("refine", "tools", f"{PIPELINE}/refine_notes.py", [w, dry, midi], f"02_midi/{refined}/guitar.json"),
+        ("assign_guitars", "tools", f"{PIPELINE}/assign_guitars.py", [w, dry, refined, "model"], f"02_midi/{final_variant(sep)}/guitar_1.json"),
+        ("merge", "tools", f"{PIPELINE}/merge.py", [w, final_variant(sep)], f"02_midi/{final_variant(sep)}/song.mid"),
     ]
 
 
@@ -60,7 +61,7 @@ def venv_python(name: str) -> str:
 
 
 def run_stage(venv: str, script: str, args: list[str]) -> float:
-    """Run one stage script in its venv; return elapsed seconds. Raises on failure."""
+    """Run one script (path relative to ROOT) in its venv; return elapsed seconds. Raises on failure."""
     t0 = time.time()
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     subprocess.run([venv_python(venv), str(ROOT / script), *args], check=True, env=env)
