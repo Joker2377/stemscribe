@@ -31,6 +31,9 @@ for _g in ("guitar_1", "guitar_2"):  # model-split guitars get the guitar settin
 # Slakh F1, 10 test / 12 validation tracks: bass .808 -> .844 / .882 -> .884, piano .708 -> .710 / .759 -> .780,
 # guitar unchanged. Only the stems that were measured get it.
 MIN_NOTE_S = {s: 0.04 for s in LAG_S}
+# Windowed flow, 22 Slakh tracks: drum onsets sit a median 13 ms late (demo vs. its own spectral flux: 11 ms);
+# the other stems are within 3 ms. Added after MIN_NOTE_S so short drum hits are not dropped.
+LAG_S["drums"] = 0.013
 PEAK_S = 0.1  # the attack peak is searched in the first 100 ms of a note
 MIN_LEN_S = 0.05
 # Slakh piano F1+off test / val: 90 dB .385 -> .387 / .328 -> .326, other stems unchanged; 60 dB cut real quiet

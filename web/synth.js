@@ -18,8 +18,9 @@ const VOICES = {
   bass:  { type: "square",   cutoff: 900,  a: 0.005, d: 0.25, s: 0.5,  r: 0.06 },
   pluck: { type: "sawtooth", cutoff: 2500, a: 0.003, d: 0.4,  s: 0.25, r: 0.08 },
   keys:  { type: "triangle", cutoff: 5000, a: 0.003, d: 0.8,  s: 0.2,  r: 0.15 },
-  lead:  { type: "sawtooth", cutoff: 1800, a: 0.03,  d: 0.2,  s: 0.7,  r: 0.1  },
-  pad:   { type: "sawtooth", cutoff: 1200, a: 0.08,  d: 0.3,  s: 0.7,  r: 0.2  },
+  // short attacks everywhere: a 30-80 ms swell is heard as the note coming late against the original
+  lead:  { type: "sawtooth", cutoff: 1800, a: 0.01,  d: 0.2,  s: 0.7,  r: 0.1  },
+  pad:   { type: "sawtooth", cutoff: 1200, a: 0.015, d: 0.3,  s: 0.7,  r: 0.2  },
 };
 
 // Schedule one pitched note on `out` at context time `when` lasting `dur` seconds.

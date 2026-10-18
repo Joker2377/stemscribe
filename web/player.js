@@ -2,7 +2,10 @@
 // so what you hear and the playhead in the roll come from the same time source.
 import { playNote } from "./synth.js";
 
-const LOOKAHEAD_S = 0.2;   // schedule notes this far ahead
+// Schedule notes this far ahead. Long on purpose: a main-thread stall (redraw, a 40-note pile-up, a background
+// tab's 1 s timer throttling) shorter than this cannot make notes late. Mix changes act on live gains and
+// seek/pause drop the whole bus, so nothing waits on the lookahead.
+const LOOKAHEAD_S = 1.5;
 const TICK_MS = 25;        // scheduler interval
 
 export class Player {
