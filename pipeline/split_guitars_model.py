@@ -58,7 +58,7 @@ def split_channel(model: torch.nn.Module, x: np.ndarray, dev: str) -> np.ndarray
             est = model(mix).float()
         n = min(est.shape[-1], SEG)
         est = mixture_consistent(est[..., :n], mix[..., :n]).cpu().numpy()[:, :, 0]  # (B, 2, n)
-        for e, s in zip(est, starts[i:i + BATCH]):
+        for e, s in zip(est, starts[i:i + BATCH], strict=True):
             out[:, s:s + n] += e * fade[:n]
             norm[s:s + n] += fade[:n]
     return (out / np.maximum(norm, 1e-6))[:, :len(x)]

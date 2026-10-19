@@ -1,4 +1,4 @@
-"""Self-check for window_stitch.  Run with any Python: python pipeline/test_window_stitch.py"""
+"""Self-check for window_stitch."""
 from window_stitch import combine, segment_index
 
 
@@ -35,12 +35,3 @@ def test_bad_window_replaced() -> None:
     spam = [note(80, 4.0 + i * 0.01, 4.5) for i in range(50)]
     out = combine([note(71, 4.0, 6.0)], spam, bad={2.5})
     assert [(n["pitch"], n["start"], n["end"]) for n in out] == [(71, 4.0, 6.0)], out
-
-
-if __name__ == "__main__":
-    test_segments()
-    test_long_note_joined()
-    test_margin_artifacts_dropped()
-    test_stuck_note_not_carried()
-    test_bad_window_replaced()
-    print("ok")

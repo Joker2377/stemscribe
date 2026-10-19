@@ -1,4 +1,4 @@
-"""Self-check for refine_notes silence cutting and crowded-note trimming.  Run: envs/tools/Scripts/python.exe test_refine_notes.py"""
+"""Self-check for refine_notes silence cutting and crowded-note trimming."""
 import numpy as np
 
 from refine_notes import HOP, POLY_MAX, refine
@@ -34,9 +34,3 @@ def test_crowded_notes_trimmed() -> None:
     out = refine(sparse + pile, power, SR, 0.0, None, crowd_trim=True)
     assert out[0]["end"] == 2.0, out[0]
     assert all(n["end"] < 5.2 for n in out[1:]), out[1:]
-
-
-if __name__ == "__main__":
-    test_note_cut_at_silence()
-    test_crowded_notes_trimmed()
-    print("ok")

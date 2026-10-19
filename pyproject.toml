@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 150
+target-version = "py311"
+src = ["pipeline", "training"]
+extend-exclude = ["envs", "archive", "eval", "work", "dataset"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import order, B bugbear, UP pyupgrade, D103 public function needs a docstring
+select = ["E", "W", "F", "I", "B", "UP", "D103"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D103"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["pipeline", "training"]

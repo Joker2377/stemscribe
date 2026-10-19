@@ -21,13 +21,14 @@ from pathlib import Path
 
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")  # one-off OOMs near the 16 GB limit
 
+from functools import lru_cache
+
+import mido
 import numpy as np
+import pedalboard as pb
 import soundfile as sf
 import torch
-import mido
-import pedalboard as pb
 import yaml
-from functools import lru_cache
 from audio_separator.separator.uvr_lib_v5.roformer.mel_band_roformer import MelBandRoformer
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 
@@ -197,7 +198,7 @@ def augment(example: tuple, rng: random.Random) -> tuple[np.ndarray, np.ndarray]
     Mixture: targets + bleed, set to -30..-12 dBFS RMS, sometimes compressed and limited (loud masters)."""
     y, bleed, same_tone = example
     chains = [tone_chain(rng)] * 2 if same_tone else [tone_chain(rng), tone_chain(rng)]
-    y = np.stack([c(g, SR, reset=True) for c, g in zip(chains, y)]).astype(np.float32)
+    y = np.stack([c(g, SR, reset=True) for c, g in zip(chains, y, strict=True)]).astype(np.float32)
     y = y * np.array([[10 ** (rng.uniform(-6, 6) / 20)] for _ in range(2)], np.float32)
     mix = y.sum(0)
     if rng.random() < BLEED_P and np.any(bleed):

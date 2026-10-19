@@ -20,7 +20,7 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import stft
 
-from assign_guitars import HARMONICS, NFFT, HOP
+from assign_guitars import HARMONICS, HOP, NFFT
 
 LAG_S = {"guitar": 0.023, "bass": 0.0145, "piano": 0.0044}
 # Tuned on 7 Slakh tracks (onset+offset F1: guitar 0.139 -> 0.318, bass 0.471 -> 0.725, plateau 10-15 dB).

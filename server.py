@@ -4,8 +4,8 @@ Runs with the same plain Python as run.py (stdlib only).  Usage: python server.p
 Open http://localhost:8000 .  Uploads go to work/uploads/; progress = which stage outputs exist.
 """
 import json
-import os
 import mimetypes
+import os
 import queue
 import subprocess
 import sys

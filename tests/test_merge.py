@@ -1,7 +1,4 @@
-"""Alignment check for merge.py: tempo change 90 -> 140 BPM must not drift.
-
-Run: envs/tools/Scripts/python pipeline/test_merge.py
-"""
+"""Alignment check for merge.py: tempo change 90 -> 140 BPM must not drift."""
 import tempfile
 from pathlib import Path
 
@@ -47,7 +44,3 @@ def test_tempo_change_alignment() -> None:
     downbeat_ticks = [ticks[starts.index(d)] for d in downbeats]
     assert all(t % (4 * TPQ) == 0 for t in downbeat_ticks), "downbeats off the bar grid"
     print(f"ok: max drift {err * 1000:.3f} ms over {len(starts)} notes")
-
-
-if __name__ == "__main__":
-    test_tempo_change_alignment()

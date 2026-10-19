@@ -86,8 +86,8 @@ def smooth_pans(notes: list[dict], pans: list[float], sigma_t: float = SMOOTH_T_
 
 def assign(notes: list[dict], pans: list[float], threshold: float) -> tuple[list[dict], list[dict]]:
     """Left-leaning notes -> guitar_1, right-leaning -> guitar_2, centred -> both."""
-    g1 = [n for n, p in zip(notes, pans) if p <= threshold]
-    g2 = [n for n, p in zip(notes, pans) if p >= -threshold]
+    g1 = [n for n, p in zip(notes, pans, strict=True) if p <= threshold]
+    g2 = [n for n, p in zip(notes, pans, strict=True) if p >= -threshold]
     return g1, g2
 
 

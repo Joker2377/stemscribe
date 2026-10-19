@@ -58,5 +58,6 @@ work/<song_id>/     all outputs (git-ignored)
 
 ## Development
 
-- Self-checks are the `test_*.py` files next to the code. Each one runs on its own, for example `envs/tools/Scripts/python.exe pipeline/test_merge.py`; the docstring names the venv to use.
+- Tests live in `tests/`. Run `envs/tools/Scripts/python.exe -m pytest`; the training test needs torch, so run it with `envs/separator/Scripts/python.exe -m pytest` (it is skipped elsewhere).
+- Lint: `envs/tools/Scripts/ruff.exe check .` (config in `pyproject.toml`). CI runs lint and tests on every push.
 - Two-guitar splitter: `training/fetch_slakh_full.py` downloads Slakh2100 to `dataset/slakh_flac/`. Then train with `envs/separator/Scripts/python.exe training/train_guitar_split.py 10`.
