@@ -8,3 +8,4 @@ __pycache__/
 archive/
 # evaluation / scoring tools (kept locally)
 eval/
+report/
