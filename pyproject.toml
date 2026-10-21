@@ -13,4 +13,4 @@ select = ["E", "W", "F", "I", "B", "UP", "D103"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["pipeline", "training"]
+pythonpath = [".", "pipeline", "training"]

@@ -46,10 +46,15 @@ python run.py song.mp3
 
 The result is `work/<song_id>/02_midi/bs_roformer_sw_dry_win_refined_modelassign/song.mid`. Steps that already finished are skipped on re-runs. To redo some of them, pass `--force transcribe,merge`.
 
+**From Claude Code (MCP)**
+
+`.mcp.json` registers `mcp_server.py` (tools venv). The MCP tools share `server.py`'s queue with the web UI and start `server.py` in the background if it isn't running (it keeps running after Claude Code exits; log in `work/server.log`). Claude can then `transcribe` a file, check `list_songs` / `song_status` (current stage, queue position), `cancel`, get a `summary`, and read notes with `get_notes` (one track, a time window).
+
 ## Layout
 
 ```
 run.py, server.py   entry points: command line / web UI
+mcp_server.py       MCP tools for Claude Code
 pipeline/           one script per stage (run by run.py, each in its venv) + their self-checks
 training/           two-guitar splitter training
 web/                browser UI (plain JS modules, no build)

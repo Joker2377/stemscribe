@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "stemscribe": {
+      "command": "envs/tools/Scripts/python.exe",
+      "args": ["mcp_server.py"],
+      "env": {"PYTHONIOENCODING": "utf-8"}
+    }
+  }
+}

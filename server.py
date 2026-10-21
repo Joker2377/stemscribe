@@ -2,11 +2,14 @@
 
 Runs with the same plain Python as run.py (stdlib only).  Usage: python server.py [port]
 Open http://localhost:8000 .  Uploads go to work/uploads/; progress = which stage outputs exist.
+The same queue is driven by mcp_server.py over this HTTP API.
 """
+import contextlib
 import json
 import mimetypes
 import os
 import queue
+import signal
 import subprocess
 import sys
 import threading
@@ -22,7 +25,9 @@ UPLOADS = run.WORK / "uploads"
 SEP = "bs_roformer_sw"
 LOG_LINES = 30
 
-jobs: dict[str, dict] = {}  # song_id -> {"status": queued|running|failed, "stage": str, "log": [str]}
+# song_id -> {"status": queued|running|failed, "stage": str, "log": [str], "proc": Popen while running, "cancel": bool}
+# insertion order = queue order (re-queued songs are popped and re-added at the end)
+jobs: dict[str, dict] = {}
 job_queue: queue.Queue = queue.Queue()
 
 
@@ -30,20 +35,52 @@ def worker() -> None:
     """Run queued songs through run.py one at a time (one GPU job at a time), tracking the current stage."""
     while True:
         sid, path = job_queue.get()
-        job = jobs[sid]
+        job = jobs.get(sid)
+        if job is None or job["status"] != "queued":  # cancelled while waiting, or a stale duplicate entry
+            continue
         job["status"] = "running"
-        proc = subprocess.Popen([sys.executable, str(ROOT / "run.py"), str(path)], cwd=ROOT,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, encoding="utf-8", errors="replace",
-                                env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+        proc = job["proc"] = subprocess.Popen([sys.executable, str(ROOT / "run.py"), str(path)], cwd=ROOT,
+                                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                              text=True, encoding="utf-8", errors="replace", start_new_session=True,
+                                              env={**os.environ, "PYTHONIOENCODING": "utf-8"})
         for line in proc.stdout:
             job["log"] = (job["log"] + [line.rstrip()])[-LOG_LINES:]
             if line.startswith("[") and line.rstrip().endswith("running"):
                 job["stage"] = line[1:line.index("]")]
-        if proc.wait() == 0:
-            del jobs[sid]  # finished songs are described by their files alone
+        if proc.wait() == 0 or job.get("cancel"):
+            del jobs[sid]  # finished (or cancelled) songs are described by their files alone
         else:
             job["status"] = "failed"
+
+
+def kill_tree(proc: subprocess.Popen) -> None:
+    """Kill run.py and the stage script it started (that child is what holds the GPU)."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+    else:
+        with contextlib.suppress(ProcessLookupError):  # it may have exited on its own just now
+            os.killpg(proc.pid, signal.SIGTERM)  # worker starts run.py in its own session = process group
+
+
+def cancel_job(sid: str) -> str:
+    """Drop a queued song or kill a running one; returns what happened (not_queued / removed / killed)."""
+    job = jobs.get(sid)
+    if job is None or job["status"] not in ("queued", "running"):
+        return "not_queued"
+    if job["status"] == "queued":
+        del jobs[sid]  # the worker skips its queue entry
+        return "removed"
+    job["cancel"] = True  # worker deletes the job once the process exits
+    # ponytail: no lock; in the microseconds between "running" and Popen there is no proc yet and the kill is missed
+    if proc := job.get("proc"):
+        kill_tree(proc)
+    return "killed"
+
+
+def queue_position(sid: str) -> int | None:
+    """1-based place among waiting songs (the running one not counted); None if not waiting."""
+    waiting = [k for k, j in jobs.items() if j["status"] == "queued"]
+    return waiting.index(sid) + 1 if sid in waiting else None
 
 
 def song_info(work: Path) -> dict:
@@ -60,6 +97,7 @@ def song_info(work: Path) -> dict:
         "name": f"{src.parent.name}/{src.name}" if src.stem == "mix" else src.name,
         "status": job["status"] if job else ("done" if finished else "incomplete"),
         "stage": job["stage"] if job else "",
+        "position": queue_position(sid),
         "log": job["log"] if job else [],
         "stages": [s[0] for s in run.stages(src, work, SEP)],
         "done": done,
@@ -88,6 +126,7 @@ def enqueue_upload(name: str, data: bytes) -> str:
     path.write_bytes(data)
     sid = run.song_id(path)
     if jobs.get(sid, {}).get("status") not in ("queued", "running"):
+        jobs.pop(sid, None)  # a failed song re-queues at the end
         jobs[sid] = {"status": "queued", "stage": "", "log": []}
         (run.WORK / sid).mkdir(parents=True, exist_ok=True)
         run.update_manifest(run.WORK / sid, "input", {"path": str(path.resolve()), "song_id": sid})
@@ -102,7 +141,7 @@ def safe_path(base: Path, rel: str) -> Path | None:
 
 
 class Handler(BaseHTTPRequestHandler):
-    """Routes: / and /web/* static, /api/songs, PUT /api/upload?name=, /files/<id>/<path>."""
+    """Routes: / and /web/* static, /api/songs, PUT /api/upload?name=, DELETE /api/jobs/<id>, /files/<id>/<path>."""
 
     def do_GET(self) -> None:
         """Serve the UI, the song list, or a file from work/."""
@@ -126,6 +165,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_error(400)
         data = self.rfile.read(int(self.headers["Content-Length"]))
         self.send_json({"id": enqueue_upload(name, data)})
+
+    def do_DELETE(self) -> None:
+        """Cancel a queued or running song (DELETE, not POST: a cross-site page can't send it without CORS)."""
+        path = urlparse(self.path).path
+        if not path.startswith("/api/jobs/"):
+            return self.send_error(404)
+        self.send_json({"result": cancel_job(path[len("/api/jobs/"):])})
 
     def send_json(self, obj) -> None:
         """Write obj as a JSON response."""
