@@ -8,7 +8,13 @@ Personal, non-commercial use: the MuScriptor and BS-Roformer-SW weights are CC B
 
 ## Setup
 
-You need Python 3.11, [uv](https://docs.astral.sh/uv/), `ffmpeg` on the PATH, and an NVIDIA GPU.
+**With Claude Code:** clone the repo, open Claude Code in it, and paste:
+
+```
+Set up this repo by following the README Setup section: check python 3.11, uv, ffmpeg and an NVIDIA GPU are available (tell me what's missing), create every venv in envs/ from requirements/, download the guitar splitter weights, then run the tests and confirm the stemscribe MCP server connects.
+```
+
+**By hand:** you need Python 3.11, [uv](https://docs.astral.sh/uv/), `ffmpeg` on the PATH, and an NVIDIA GPU.
 
 Each stage runs in its own venv under `envs/`. Create one per file in `requirements/`:
 
@@ -22,7 +28,11 @@ done
 
 On Linux or macOS, use `envs/$name/bin/python`. On Windows, set `PYTHONIOENCODING=utf-8`.
 
-Model weights download to `envs/models/` the first time they are used. The two-guitar splitter is the exception: it is trained locally (see below) and is expected at `envs/models/guitar_split_run5_gap/best.pt`.
+Model weights download to `envs/models/` the first time they are used. The two-guitar splitter is the exception: it is trained locally (see below). Download the trained weights from the [weights-v1 release](https://github.com/Joker2377/stemscribe/releases/tag/weights-v1):
+
+```
+curl -L --create-dirs -o envs/models/guitar_split_run5_gap/best.pt https://github.com/Joker2377/stemscribe/releases/download/weights-v1/guitar_split_run5_gap.pt
+```
 
 ## Use it
 
